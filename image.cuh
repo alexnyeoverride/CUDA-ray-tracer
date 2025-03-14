@@ -12,7 +12,7 @@ struct Image {
 
     Pixel* pixels;
 
-    __host__ __device__ Pixel& at(const int x, const int y) const {
+    __host__ __device__ Pixel& at(const uint8_t x, const uint8_t y) const {
         return pixels[y * width + x];
     }
 

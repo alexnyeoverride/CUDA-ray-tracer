@@ -1,6 +1,8 @@
 #include "camera.cuh"
 
+#include <iostream>
 #include <limits>
+#include <ostream>
 
 #include "ray.cuh"
 #include "scene.cuh"
@@ -13,8 +15,9 @@ __global__ void cast(
 	const double4 pixel_delta_u,
 	const double4 pixel_delta_v
 ) {
-	const auto x = threadIdx.x;
-	const auto y = threadIdx.y;
+	const auto x = blockIdx.x * blockDim.x + threadIdx.x;
+	const auto y = blockIdx.y * blockDim.y + threadIdx.y;
+	if (x >= image.width || y >= image.height)  return;
 
 	const auto pixel_center = upper_left_pixel + pixel_delta_u * x + pixel_delta_v * y;
 	const auto direction = pixel_center - camera.center;
@@ -93,8 +96,12 @@ __global__ void cast(
 
 	free(node_stack);
 
-	// TODO: set pixel color to ray color
-	image.at(x, y) = ray.color();
+	image.at(x, y) = {
+		static_cast<unsigned char>(ray.color.x * 255.999),
+		static_cast<unsigned char>(ray.color.y * 255.999),
+		static_cast<unsigned char>(ray.color.z * 255.999),
+		static_cast<unsigned char>(ray.color.w * 255.999),
+	};
 }
 
 __host__ Image Camera::capture(const Scene& scene) const {
@@ -114,8 +121,14 @@ __host__ Image Camera::capture(const Scene& scene) const {
 		center - double4{0.0, 0.0, focal_length, 0.0} - viewport_u/2 - viewport_v/2;
 	const auto upper_left_pixel = upper_left_corner + (pixel_delta_u + pixel_delta_v) * 0.5;
 
-	cast<<<1, {image_width, image_height}>>>(scene, *this, image, upper_left_pixel, pixel_delta_u, pixel_delta_v);
+	const auto gridDim = dim3(image_width / 32 + 1, image_height / 32 + 1);
+	cast<<<gridDim, {32, 32}>>>(scene, *this, image, upper_left_pixel, pixel_delta_u, pixel_delta_v);
 	cudaDeviceSynchronize();
+
+	const auto err = cudaGetLastError();
+	if (err != cudaSuccess) {
+		std::cerr << "CUDA error: " << cudaGetErrorString(err) << std::endl;
+	}
 
 	return image;
 }
