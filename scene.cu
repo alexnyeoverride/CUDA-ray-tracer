@@ -1,5 +1,7 @@
 #include "scene.cuh"
 
+#include <limits>
+
 __host__ __device__ bool Sphere::intersects(const Ray &ray, Ray &out_ray) const {
 	// TODO: determine point, exit direction, and color for out_ray.
 	const auto center = transform * double4{};
@@ -12,17 +14,16 @@ __host__ __device__ bool Sphere::intersects(const Ray &ray, Ray &out_ray) const 
 }
 
 __host__ __device__ bool Box::intersects(const Ray &ray, Ray &out_ray) const {
-	// TODO: determine point, exit direction, and color
+	// Not implemented.
 	return true;
 }
 
 
 __host__ __device__ bool Scene::cast(Ray &ray) const {
-	auto sqr_distance_to_closest_hit = INFINITY;
+	auto sqr_distance_to_closest_hit = std::numeric_limits<double>::infinity();
 	auto out_ray = ray;
 	auto ray_alive = true;
 
-	const auto recursion_limit = 10; // TODO: prevent creating BVHs deeper than this elsewhere.
 	auto stack_depth = 0;
 	const Scene** node_stack;
 #ifdef __CUDA_ARCH__
@@ -83,8 +84,10 @@ __host__ __device__ bool Scene::cast(Ray &ray) const {
 		}
 
 		if (!ray_alive) {
+			// The ray hit the sky.
 			if (stack_depth == 0) {
 				return false;
+			// The ray left a child BVH.
 			} else {
 				stack_depth--;
 				node = node_stack[stack_depth];

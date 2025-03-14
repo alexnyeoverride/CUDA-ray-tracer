@@ -5,6 +5,9 @@
 #include "ray.cuh"
 
 
+const auto recursion_limit = 10;
+
+
 struct Scene;
 __global__ void destroyRecursively(const Scene& scene);
 
@@ -62,28 +65,31 @@ struct Scene : Sphere {
 	}
 
 	__host__ __device__ void insert(const Sphere &sphere) {
-		if (num_spheres < CAPACITY) {
-			spheres[num_spheres] = sphere;
-			num_spheres++;
+		const auto sphere_center = sphere.transform * double4{};
+		const auto node = find_node_to_insert_into(sphere_center);
+
+		if (node->num_spheres < CAPACITY) {
+			node->spheres[node->num_spheres] = sphere;
+			node->num_spheres++;
 		} else {
-			// TODO: find or create child scene to insert into.  Use the closest one with capacity.  Recurse.  Then balance-swap.
+			// TODO: find or create child scene to insert into.  Use the closest one with capacity.  Recurse (mind recursion_limit).  Then balance-swap.
 			// TODO: reuse `intersects` on child nodes with a length-0 Ray.
 		}
-		// TODO: grow radius if needed:  if
-		// TODO: recursion.  if
-		// TODO: capacity
-		// TODO: add to num_objects
+		// TODO: grow radius if needed.
 	}
 
-	// TODO: other insertion methods
+	// Other insertion method overloads not implemented.
+
+private:
 
 	// TODO: method to find overlapping child nodes and perform trades between them to minimize the radius of each.
-	//		Else, have to spawn a new subtree.  device_construct on device or construct on host.
+	//		Else, have to spawn a new subtree (mind recursion_limit).  device_construct on device or construct on host.
+	// TODO: for completeness, it should also balance the tree depths.
 
 	// TODO: a method to find the bottom-most descendent node overlapping with a point.
-	//		If it's already full, spawn a subtree.  device_construct on device or construct on host.
-	__host__ __device__ Scene* find_node_to_insert_into(const double4& center_of_object_to_insert) const {
-		return nullptr;
+	//		If it's already full, spawn a subtree (mind recursion_limit).  device_construct on device or construct on host.
+	__host__ __device__ Scene* find_node_to_insert_into(const double4& center_of_object_to_insert) {
+		return this;
 		// TODO
 	}
 };
