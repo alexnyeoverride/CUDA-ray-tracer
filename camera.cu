@@ -96,7 +96,6 @@ __global__ void cast(
 
 	free(node_stack);
 
-	// TODO: this doesn't actually modify the image
 	image.at(x, y) = {
 		static_cast<unsigned char>(ray.color.x * 255.999),
 		static_cast<unsigned char>(ray.color.y * 255.999),
