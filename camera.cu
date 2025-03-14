@@ -8,15 +8,16 @@
 #include "scene.cuh"
 
 __global__ void cast(
-	const Scene& scene,
-	const Camera& camera,
-	Image& image,
+	const Scene scene,
+	const Camera camera,
+	Image image,
 	const double4 upper_left_pixel,
 	const double4 pixel_delta_u,
 	const double4 pixel_delta_v
 ) {
 	const auto x = blockIdx.x * blockDim.x + threadIdx.x;
 	const auto y = blockIdx.y * blockDim.y + threadIdx.y;
+
 	if (x >= image.width || y >= image.height)  return;
 
 	const auto pixel_center = upper_left_pixel + pixel_delta_u * x + pixel_delta_v * y;
@@ -84,8 +85,7 @@ __global__ void cast(
 		if (!ray_alive) {
 			// The ray hit the sky.
 			if (stack_depth == 0) {
-				free(node_stack);
-				return;
+				break;
 			// The ray left a child BVH.
 			} else {
 				stack_depth--;
@@ -96,6 +96,7 @@ __global__ void cast(
 
 	free(node_stack);
 
+	// TODO: this doesn't actually modify the image
 	image.at(x, y) = {
 		static_cast<unsigned char>(ray.color.x * 255.999),
 		static_cast<unsigned char>(ray.color.y * 255.999),
@@ -121,8 +122,10 @@ __host__ Image Camera::capture(const Scene& scene) const {
 		center - double4{0.0, 0.0, focal_length, 0.0} - viewport_u/2 - viewport_v/2;
 	const auto upper_left_pixel = upper_left_corner + (pixel_delta_u + pixel_delta_v) * 0.5;
 
-	const auto gridDim = dim3(image_width / 32 + 1, image_height / 32 + 1);
-	cast<<<gridDim, {32, 32}>>>(scene, *this, image, upper_left_pixel, pixel_delta_u, pixel_delta_v);
+	const auto block_width = 16;
+	const auto block_height = 16;
+	const auto gridDim = dim3(image_width / block_width + 1, image_height / block_height + 1);
+	cast<<<gridDim, {block_width, block_height}>>>(scene, *this, image, upper_left_pixel, pixel_delta_u, pixel_delta_v);
 	cudaDeviceSynchronize();
 
 	const auto err = cudaGetLastError();

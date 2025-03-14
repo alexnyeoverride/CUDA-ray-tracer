@@ -19,14 +19,16 @@ struct Image {
     void save() const;
 
     static Image create(const int16_t width, const int16_t height) {
+        Pixel* pixels;
+        cudaMallocManaged(&pixels, sizeof(Pixel) * width * height);
         return {
             height,
             width,
-            new Pixel[width * height] // TODO: need to cudaMallocManaged
+            pixels
         };
     }
 
     void destroy() const {
-        delete[] pixels; // TODO: cudaFree
+        cudaFree(pixels);
     }
 };
