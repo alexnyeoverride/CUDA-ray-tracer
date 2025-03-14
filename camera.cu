@@ -115,6 +115,7 @@ __host__ Image Camera::capture(const Scene& scene) const {
 	const auto upper_left_pixel = upper_left_corner + (pixel_delta_u + pixel_delta_v) * 0.5;
 
 	cast<<<1, {image_width, image_height}>>>(scene, *this, image, upper_left_pixel, pixel_delta_u, pixel_delta_v);
+	cudaDeviceSynchronize();
 
 	return image;
 }
