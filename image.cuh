@@ -22,11 +22,11 @@ struct Image {
         return {
             height,
             width,
-            new Pixel[width * height]
+            new Pixel[width * height] // TODO: need to cudaMallocManaged
         };
     }
 
     void destroy() const {
-        delete[] pixels;
+        delete[] pixels; // TODO: cudaFree
     }
 };

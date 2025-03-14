@@ -37,8 +37,6 @@ struct Scene : Sphere {
 	Scene* scenes = nullptr;
 	int8_t num_scenes = 0;
 
-	__host__ __device__ bool cast(Ray& ray) const;
-
 	static __device__ Scene device_construct() {
 		auto scene = Scene{};
 		scene.boxes = static_cast<Box*>(malloc(sizeof(Box) * CAPACITY));
